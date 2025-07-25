@@ -2,20 +2,56 @@ version: '3'
 services:
   spark-master:
     image: bitnami/spark:latest
+    container_name: spark-master
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_LOCAL_IP=spark-master
     ports:
-      - "7077:7077"
-      - "8080:8080"
+      - "7077:7077"  # Spark Master port
+      - "8080:8080"  # Spark Master Web UI
+    volumes:
+      - ./data:/opt/bitnami/spark/data:ro  # 데이터 디렉터리 마운트 (읽기 전용)
+      - ./notebooks:/opt/bitnami/spark/notebooks:ro  # 노트북 디렉터리 마운트 (읽기 전용)
+    networks:
+      - spark-network
 
-  spark-worker:
+  spark-worker-1:
     image: bitnami/spark:latest
+    container_name: spark-worker-1
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=2
+      - SPARK_LOCAL_IP=spark-worker-1
     depends_on:
       - spark-master
     ports:
-      - "8081:8081"
+      - "8081:8081"  # Worker 1 Web UI
+    volumes:
+      - ./data:/opt/bitnami/spark/data:ro
+    networks:
+      - spark-network
+
+  spark-worker-2:
+    image: bitnami/spark:latest
+    container_name: spark-worker-2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=2
+      - SPARK_LOCAL_IP=spark-worker-2
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"  # Worker 2 Web UI
+    volumes:
+      - ./data:/opt/bitnami/spark/data:ro
+    networks:
+      - spark-network
+
+networks:
+  spark-network:
+    driver: bridge
